@@ -10,4 +10,7 @@ cargo test
 
 # to get the part2 of the results
 cargo run
+
+# making a bench test
+hyperfine --warmup 5 './target/release/advent-rust ./inputs/' -N
 ```
