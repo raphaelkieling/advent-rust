@@ -24,28 +24,30 @@ impl XMASReader {
 }
 
 struct XMASExplorer {
-    reader: XMASReader
+    reader: XMASReader,
+    all_possibilities: Vec<String>
 }
 
 impl XMASExplorer {
     fn new(reader: XMASReader) -> Self {
-        return XMASExplorer { reader };
+        return XMASExplorer { reader, all_possibilities: vec![] };
     }
 
-    fn explore(&self) -> i64 {
-        let mut valids: i64 = 0; 
+    fn explore(&mut self) -> &Self {
         let size = 4;
         let data = self.reader.data.clone();
-        let mut all_possibilites: Vec<String> = Vec::new();
 
         for (yx, yv) in self.reader.data.iter().enumerate() {
             for (xx, xv) in yv.iter().enumerate() {
                 let mut possibilities : Vec<String> = vec![];
-                let xxi = xx as isize;
                 let yxi = yx as isize;
 
+                let can_down = (yx + size) <= self.reader.data.len();
+                let can_right = (xx + size) <= yv.len();
+                let can_up = (yxi - size as isize) > 0;
+
                 // Check right
-                if (xx + size) < yv.len() {
+                if can_right {
                     let mut is_right:String = String::new();
                     is_right.push_str(xv);
                     is_right.push_str(&yv[xx + 1]);
@@ -53,52 +55,66 @@ impl XMASExplorer {
                     is_right.push_str(&yv[xx + 3]);
 
                     possibilities.push(is_right.clone());
-                    possibilities.push(is_right.clone().chars().rev().collect());
-                }
-                // Check left
-                if (xxi - size as isize) > 0  {
-                    let mut is_left:String = String::new();
-                    is_left.push_str(xv);
-                    is_left.push_str(&yv[xx - 1]);
-                    is_left.push_str(&yv[xx - 2]);
-                    is_left.push_str(&yv[xx - 3]);
-
-                    possibilities.push(is_left.clone());
-                    possibilities.push(is_left.clone().chars().rev().collect());
-                    
-                }
-
-                // Check up
-                if (yx + size) < self.reader.data.len() {
-                    let mut is_up:String = String::new();
-                    is_up.push_str(&data[yx][xx]);
-                    is_up.push_str(&data[yx + 1][xx]);
-                    is_up.push_str(&data[yx + 2][xx]);
-                    is_up.push_str(&data[yx + 3][xx]);
-
-                    possibilities.push(is_up.clone());
-                    possibilities.push(is_up.clone().chars().rev().collect());
                 }
 
                 // Check down
-                if (yxi - size as isize) > 0 {
+                if can_down {
                     let mut is_down:String = String::new();
                     is_down.push_str(&data[yx][xx]);
-                    is_down.push_str(&data[yx - 1][xx]);
-                    is_down.push_str(&data[yx - 2][xx]);
-                    is_down.push_str(&data[yx - 3][xx]);
+                    is_down.push_str(&data[yx + 1][xx]);
+                    is_down.push_str(&data[yx + 2][xx]);
+                    is_down.push_str(&data[yx + 3][xx]);
 
                     possibilities.push(is_down.clone());
-                    possibilities.push(is_down.clone().chars().rev().collect());
                 }
 
-                all_possibilites.extend(possibilities);
+
+                // Diagonal RIGHT + DOWN
+                if can_right && can_down {
+                    let mut is_diagonal_right_down:String = String::new();
+                    is_diagonal_right_down.push_str(&data[yx][xx]);
+                    is_diagonal_right_down.push_str(&data[yx + 1][xx + 1]);
+                    is_diagonal_right_down.push_str(&data[yx + 2][xx + 2]);
+                    is_diagonal_right_down.push_str(&data[yx + 3][xx + 3]);
+
+                    possibilities.push(is_diagonal_right_down.clone());
+                }
+
+                // Diagonal RIGHT + UP
+                if can_right && can_up {
+                    let mut is_diagonal_right_up:String = String::new();
+                    is_diagonal_right_up.push_str(&data[yx][xx]);
+                    is_diagonal_right_up.push_str(&data[yx - 1][xx + 1]);
+                    is_diagonal_right_up.push_str(&data[yx - 2][xx + 2]);
+                    is_diagonal_right_up.push_str(&data[yx - 3][xx + 3]);
+
+                    possibilities.push(is_diagonal_right_up.clone());
+                }
+                
+
+                self.all_possibilities.extend(possibilities);
             }
         }
 
-        println!("A: {:?}", all_possibilites);
+        println!("A: {:?}", self.all_possibilities);
 
-        return valids;
+        return self;
+    }
+
+    fn count_valid(&self) -> isize {
+        let mut count_valids = 0;
+        let valids = vec![
+            "XMAS",
+            "SAMX"
+        ];
+
+        for i in self.all_possibilities.iter() {
+           if valids.iter().any(|&x| x == i) {
+                count_valids += 1;
+           }
+        }
+
+        return count_valids;
     }
 }
 
@@ -106,8 +122,8 @@ pub fn execute(path: String) {
     let mut reader = XMASReader::new();
     reader.read(path);
 
-    let explorer =  XMASExplorer::new(reader);
-    let val = explorer.explore();
+    let mut explorer =  XMASExplorer::new(reader);
+    let val = explorer.explore().count_valid();
 
     println!("Quantity: {:?}", val);
 }
@@ -121,8 +137,8 @@ mod test {
         let mut reader = XMASReader::new();
         reader.read("src/tests/04_18.txt".to_string());
 
-        let explorer =  XMASExplorer::new(reader);
-        let val = explorer.explore();
+        let mut explorer =  XMASExplorer::new(reader);
+        let val = explorer.explore().count_valid();
 
         assert_eq!(val, 18);
     }
