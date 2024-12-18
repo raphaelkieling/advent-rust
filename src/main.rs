@@ -3,6 +3,7 @@ use std::env;
 mod _01;
 mod _02;
 mod _03;
+mod _04;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -22,4 +23,8 @@ fn main() {
     println!("_03");
     let _03_file = format!("{}/03.txt", base_folder);
     _03::execute(_03_file);
+
+    println!("_04");
+    let _04_file = format!("{}/04.txt", base_folder);
+    _04::execute(_04_file);
 }
