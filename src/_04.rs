@@ -41,36 +41,38 @@ impl XMASv2Explorer {
         for (yx, yv) in self.reader.data.iter().enumerate() {
             for (xx, xv) in yv.iter().enumerate() {
                 let mut possibilities: Vec<String> = vec![];
-                let xxi = xx as isize;
-
                 let can_down = (yx + size) < self.reader.data.len();
                 let can_right = (xx + size) < yv.len();
-                let can_left = (xxi - size as isize) >= 0;
 
                 // Diagonal RIGHT + DOWN
                 if can_right && can_down {
                     let mut is_diagonal_right_down: String = String::new();
                     is_diagonal_right_down.push_str(&xv);
-                    is_diagonal_right_down.push_str(&data[yx][xx + 1]);
-                    is_diagonal_right_down.push_str(&data[yx][xx + 2]);
+                    is_diagonal_right_down.push_str(&data[yx + 1][xx + 1]);
+                    is_diagonal_right_down.push_str(&data[yx + 2][xx + 2]);
 
                     possibilities.push(is_diagonal_right_down.clone());
                 }
 
                 // Diagonal LEFT + DOWN
-                if can_left && can_down {
+                if can_right && can_down {
                     let mut is_diagonal_left_down: String = String::new();
-                    is_diagonal_left_down.push_str(&xv);
-                    is_diagonal_left_down.push_str(&data[yx + 1][xx - 1]);
-                    is_diagonal_left_down.push_str(&data[yx + 2][xx - 2]);
+                    is_diagonal_left_down.push_str(&data[yx][xx + 2]);
+                    is_diagonal_left_down.push_str(&data[yx + 1][xx + 1]);
+                    is_diagonal_left_down.push_str(&data[yx + 2][xx]);
 
                     possibilities.push(is_diagonal_left_down.clone());
                 }
 
-                for i in possibilities.clone().iter() {
-                    if valids.iter().any(|&x| x == i) {
-                        count_valids += 1;
+                let mut count_curr_valid = 0;
+                for p in possibilities.clone() {
+                    if valids.iter().any(|&x| x == p) {
+                        count_curr_valid += 1;
                     }
+                }
+
+                if count_curr_valid >= 2 {
+                    count_valids += 1;
                 }
             }
         }
@@ -195,9 +197,6 @@ mod test {
     fn get_quantity_v2() {
         let mut reader = XMASReader::new();
         reader.read("src/tests/04_x-mas.txt".to_string());
-
-
-        println!("{:?}", reader.data);
 
         // Part 2
         let explorer = XMASv2Explorer::new(reader);
