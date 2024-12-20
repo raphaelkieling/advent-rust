@@ -4,6 +4,7 @@ mod _01;
 mod _02;
 mod _03;
 mod _04;
+mod _05;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -27,4 +28,8 @@ fn main() {
     println!("_04");
     let _04_file = format!("{}/04.txt", base_folder);
     _04::execute(_04_file);
+
+    println!("_05");
+    let _05_file = format!("{}/05.txt", base_folder);
+    _05::execute(_05_file);
 }
