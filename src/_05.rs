@@ -1,5 +1,7 @@
 use std::fs;
 
+
+#[derive(Clone, Debug)]
 struct Rule {
     tail: usize,
     head: usize,
@@ -7,10 +9,7 @@ struct Rule {
 
 struct ProtocolReader {
     ordering_rules: Vec<Rule>,
-    updates: Vec<usize>,
-
-    raw_updates: Vec<String>,
-    raw_ordering_rules: Vec<String>,
+    updates: Vec<Vec<usize>>,
 }
 
 impl ProtocolReader {
@@ -18,9 +17,6 @@ impl ProtocolReader {
         return ProtocolReader {
             ordering_rules: vec![],
             updates: vec![],
-
-            raw_updates: vec![],
-            raw_ordering_rules: vec![],
         };
     }
 
@@ -30,31 +26,52 @@ impl ProtocolReader {
         for l in content.lines().into_iter() {
             let is_rule = l.contains("|");
             if is_rule {
-                self.raw_ordering_rules.push(l.to_string());
+                let values = l.split("|").collect::<Vec<&str>>();
+
+                let tail = values
+                    .get(0)
+                    .expect("tail")
+                    .parse::<usize>()
+                    .expect("tail must be a usize");
+                let head = values
+                    .get(1)
+                    .expect("head")
+                    .parse::<usize>()
+                    .expect("head must be a usize");
+
+                self.ordering_rules.push(Rule { tail, head });
             }
 
-            let is_sequence = l.contains(",");
-            if is_sequence {
-                self.raw_updates.push(l.to_string());
+            let is_update = l.contains(",");
+            if is_update {
+                let values = l.split(",").collect::<Vec<&str>>();
+                let mut curr_updates = vec![];
+
+                for i in values.iter() {
+                    let parsed_val = i.parse::<usize>().expect("Must be number");
+                    curr_updates.push(parsed_val);
+                }
+
+                self.updates.push(curr_updates);
             }
         }
+
+        dbg!(self.updates.clone());
+        dbg!(self.ordering_rules.clone());
     }
 
-    fn resolve(&mut self) {
-        for u in self.raw_updates.iter() {
-            let val = u.split(",").collect();
-
-            //val.parse::<usize>().expect("Must be number");
-            self.updates.push(val);
-        }
-
-        dbg!(&self.updates);
+    fn resolve(&self) -> isize {
+        // determine the correct lines
+        // sum the middle of each correct lien
+        // return the sum of them
+        return 0;
     }
 }
 
 pub fn execute(path: String) {
     let mut reader = ProtocolReader::new();
     reader.read(path);
+    reader.resolve();
 }
 
 #[cfg(test)]
