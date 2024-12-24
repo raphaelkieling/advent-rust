@@ -1,15 +1,19 @@
 use std::fs;
 
-
 #[derive(Clone, Debug)]
 struct Rule {
     tail: usize,
     head: usize,
 }
 
+#[derive(Clone, Debug)]
+struct UpdateLine {
+    data: Vec<usize>,
+}
+
 struct ProtocolReader {
     ordering_rules: Vec<Rule>,
-    updates: Vec<Vec<usize>>,
+    updates: Vec<UpdateLine>,
 }
 
 impl ProtocolReader {
@@ -52,12 +56,12 @@ impl ProtocolReader {
                     curr_updates.push(parsed_val);
                 }
 
-                self.updates.push(curr_updates);
+                self.updates.push(UpdateLine { data: curr_updates });
             }
         }
 
-        dbg!(self.updates.clone());
         dbg!(self.ordering_rules.clone());
+        dbg!(self.updates.clone());
     }
 
     fn resolve(&self) -> isize {
