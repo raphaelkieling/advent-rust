@@ -11,6 +11,11 @@ struct UpdateLine {
     data: Vec<usize>,
 }
 
+struct CheckResult {
+    is_valid: bool,
+    possibilities: Vec<UpdateLine>,
+}
+
 struct ProtocolReader {
     ordering_rules: Vec<Rule>,
     updates: Vec<UpdateLine>,
@@ -61,7 +66,7 @@ impl ProtocolReader {
         }
     }
 
-    fn check_line(&self, line: UpdateLine, counter: &mut HashMap<String, bool>) -> bool {
+    fn check_line(&self, line: UpdateLine, counter: &mut HashMap<String, bool>) -> CheckResult {
         let mut is_valid = true;
         for nmr in &line.data {
             // Check if the word has a rule version
@@ -97,7 +102,10 @@ impl ProtocolReader {
             }
         }
 
-        return is_valid;
+        return CheckResult {
+            is_valid,
+            possibilities: vec![],
+        };
     }
 
     fn resolve(&self) -> isize {
@@ -108,9 +116,8 @@ impl ProtocolReader {
             println!("-------");
             println!("For: {:?}", line);
             let mut word_counter: HashMap<String, bool> = HashMap::new();
-            let is_valid = self.check_line(line.clone(), &mut word_counter);
-
-            if is_valid {
+            let result = self.check_line(line.clone(), &mut word_counter);
+            if result.is_valid {
                 valid_lines.push(line.clone());
             }
         }
