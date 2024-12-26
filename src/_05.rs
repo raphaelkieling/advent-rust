@@ -1,4 +1,4 @@
-use std::fs;
+use std::{collections::HashMap, fs};
 
 #[derive(Clone, Debug)]
 struct Rule {
@@ -59,23 +59,81 @@ impl ProtocolReader {
                 self.updates.push(UpdateLine { data: curr_updates });
             }
         }
+    }
 
-        dbg!(self.ordering_rules.clone());
-        dbg!(self.updates.clone());
+    fn check_line(&self, line: UpdateLine, counter: &mut HashMap<String, bool>) -> bool {
+        let mut is_valid = true;
+        for nmr in &line.data {
+            // Check if the word has a rule version
+            // Find ALL the rules with this head and try
+            for rule in self.ordering_rules.iter() {
+                if *nmr == rule.head {
+                    // Check tail
+                    if counter.contains_key(&rule.tail.to_string()) {
+                        is_valid = true;
+                    } else {
+                        // To become invalid, the tail must be in the array
+                        let has_but_wrong = line
+                            .data
+                            .clone()
+                            .iter()
+                            .filter(|x| {
+                                return *x == &rule.tail;
+                            })
+                            .count();
+
+                        if has_but_wrong > 0 {
+                            println!("Trying: {} do not find {}", nmr, rule.tail);
+                            is_valid = false;
+                        }
+                    }
+                }
+            }
+            // Save the word
+            counter.insert(nmr.to_string(), true);
+
+            if !is_valid {
+                break;
+            }
+        }
+
+        return is_valid;
     }
 
     fn resolve(&self) -> isize {
+        let mut valid_lines: Vec<UpdateLine> = vec![];
+
         // determine the correct lines
+        for line in self.updates.iter() {
+            println!("-------");
+            println!("For: {:?}", line);
+            let mut word_counter: HashMap<String, bool> = HashMap::new();
+            let is_valid = self.check_line(line.clone(), &mut word_counter);
+
+            if is_valid {
+                valid_lines.push(line.clone());
+            }
+        }
+
         // sum the middle of each correct lien
+        let mut middle_sum = 0 as isize;
+        valid_lines.iter().for_each(|x| {
+            let mid = x.data.len() / 2;
+            let val = *x.data.get(mid).expect("Get sum") as isize;
+            middle_sum += val;
+        });
+
         // return the sum of them
-        return 0;
+        return middle_sum;
     }
 }
 
 pub fn execute(path: String) {
     let mut reader = ProtocolReader::new();
     reader.read(path);
-    reader.resolve();
+    let val = reader.resolve();
+
+    println!("Quantity: {}", val);
 }
 
 #[cfg(test)]
@@ -87,8 +145,8 @@ mod tests {
         let path = "src/tests/05_143.txt".to_string();
         let mut reader = ProtocolReader::new();
         reader.read(path);
-        reader.resolve();
+        let val = reader.resolve();
 
-        assert_eq!(0, 143);
+        assert_eq!(val, 143);
     }
 }
