@@ -66,9 +66,12 @@ impl ProtocolReader {
         }
     }
 
-    fn check_line(&self, line: UpdateLine, counter: &mut HashMap<String, bool>) -> CheckResult {
+    fn check_line(&self, line: UpdateLine, get_possibilities: bool) -> CheckResult {
+        let mut counter: HashMap<String, bool> = HashMap::new();
+        let mut possibilities: Vec<UpdateLine> = vec![];
         let mut is_valid = true;
-        for nmr in &line.data {
+
+        for (_ix, nmr) in line.data.iter().enumerate() {
             // Check if the word has a rule version
             // Find ALL the rules with this head and try
             for rule in self.ordering_rules.iter() {
@@ -88,12 +91,48 @@ impl ProtocolReader {
                             .count();
 
                         if has_but_wrong > 0 {
-                            println!("Trying: {} do not find {}", nmr, rule.tail);
+                            if get_possibilities {
+                                println!("Trying: {} do not find {}", nmr, rule.tail);
+                                let mut new_possibility: Vec<usize> = line.data.clone();
+
+                                // Add the possibility
+                                // 1. Remove the head
+                                if let Some(index) =
+                                    new_possibility.iter().position(|&x| x == rule.head)
+                                {
+                                    new_possibility.remove(index);
+                                }
+
+                                // 2. Add the head after the tail.
+                                if let Some(index) =
+                                    new_possibility.iter().position(|&x| x == rule.tail)
+                                {
+                                    new_possibility.insert(index + 1, rule.head);
+                                }
+
+                                // 3. Add the new possitibility
+                                let new_update_line = UpdateLine {
+                                    data: new_possibility.clone(),
+                                };
+                                possibilities.push(new_update_line.clone());
+
+                                // 4. Get new possibilities
+                                let result_possibility = self.check_line(new_update_line, true);
+                                if result_possibility.is_valid {
+                                    if result_possibility.possibilities.len() > 0 {
+                                        possibilities.extend(result_possibility.possibilities);
+                                    }
+                                }
+
+                                println!("For this, now is: {:?}", new_possibility);
+                            }
+
                             is_valid = false;
                         }
                     }
                 }
             }
+
             // Save the word
             counter.insert(nmr.to_string(), true);
 
@@ -104,7 +143,7 @@ impl ProtocolReader {
 
         return CheckResult {
             is_valid,
-            possibilities: vec![],
+            possibilities,
         };
     }
 
@@ -115,10 +154,18 @@ impl ProtocolReader {
         for line in self.updates.iter() {
             println!("-------");
             println!("For: {:?}", line);
-            let mut word_counter: HashMap<String, bool> = HashMap::new();
-            let result = self.check_line(line.clone(), &mut word_counter);
-            if result.is_valid {
-                valid_lines.push(line.clone());
+            let result = self.check_line(line.clone(), true);
+            if result.possibilities.len() > 0 {
+                for possibility in result.possibilities.iter() {
+                    println!(">>>>>>>>>>>>>");
+                    println!("For: {:?}", possibility);
+
+                    let result_pos = self.check_line(possibility.clone(), false);
+                    if result_pos.is_valid {
+                        println!("The final valid is: {:?}", possibility);
+                        valid_lines.push(possibility.clone());
+                    }
+                }
             }
         }
 
@@ -148,12 +195,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn get_143_middle_updates() {
+    fn get_123_middle_updates() {
         let path = "src/tests/05_143.txt".to_string();
         let mut reader = ProtocolReader::new();
         reader.read(path);
         let val = reader.resolve();
 
-        assert_eq!(val, 143);
+        assert_eq!(val, 123);
     }
 }
