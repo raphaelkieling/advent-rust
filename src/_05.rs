@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs};
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct Rule {
     tail: usize,
     head: usize,
@@ -66,15 +66,24 @@ impl ProtocolReader {
         }
     }
 
-    fn check_line(&self, line: UpdateLine, get_possibilities: bool) -> CheckResult {
+    fn check_line(
+        &self,
+        line: UpdateLine,
+        get_possibilities: bool,
+        rule: Option<Vec<Rule>>,
+    ) -> CheckResult {
         let mut counter: HashMap<String, bool> = HashMap::new();
         let mut possibilities: Vec<UpdateLine> = vec![];
         let mut is_valid = true;
+        let rules = match rule {
+            Some(v) => v,
+            None => self.ordering_rules.clone(),
+        };
 
         for (_ix, nmr) in line.data.iter().enumerate() {
             // Check if the word has a rule version
             // Find ALL the rules with this head and try
-            for rule in self.ordering_rules.iter() {
+            for rule in rules.iter() {
                 if *nmr == rule.head {
                     // Check tail
                     if counter.contains_key(&rule.tail.to_string()) {
@@ -116,12 +125,18 @@ impl ProtocolReader {
                                 };
                                 possibilities.push(new_update_line.clone());
 
+                                // 3.1 Get only the other rules
+                                let new_rules = rules
+                                    .iter()
+                                    .filter(|x| *x != rule)
+                                    .map(|x| x.clone())
+                                    .collect::<Vec<Rule>>();
+
                                 // 4. Get new possibilities
-                                let result_possibility = self.check_line(new_update_line, true);
-                                if result_possibility.is_valid {
-                                    if result_possibility.possibilities.len() > 0 {
-                                        possibilities.extend(result_possibility.possibilities);
-                                    }
+                                let result_possibility =
+                                    self.check_line(new_update_line, true, Some(new_rules));
+                                if result_possibility.possibilities.len() > 0 {
+                                    possibilities.extend(result_possibility.possibilities);
                                 }
 
                                 println!("For this, now is: {:?}", new_possibility);
@@ -154,13 +169,14 @@ impl ProtocolReader {
         for line in self.updates.iter() {
             println!("-------");
             println!("For: {:?}", line);
-            let result = self.check_line(line.clone(), true);
+            let result = self.check_line(line.clone(), true, None);
             if result.possibilities.len() > 0 {
+                println!("All poss: {:?}", result.possibilities);
                 for possibility in result.possibilities.iter() {
                     println!(">>>>>>>>>>>>>");
                     println!("For: {:?}", possibility);
 
-                    let result_pos = self.check_line(possibility.clone(), false);
+                    let result_pos = self.check_line(possibility.clone(), false, None);
                     if result_pos.is_valid {
                         println!("The final valid is: {:?}", possibility);
                         valid_lines.push(possibility.clone());
